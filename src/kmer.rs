@@ -1,6 +1,5 @@
 use num_traits::int::PrimInt;
 use num_traits::sign::Unsigned;
-use std::cmp::min;
 use std::iter::FilterMap;
 use std::marker::PhantomData;
 
@@ -26,13 +25,13 @@ macro_rules! impl_t {
         #[inline]
         fn from_nuc(b: &u8) -> Option<Self> {
             match b {
-                b'A' | b'C' | b'G' | b'T' => Some(((b / 3 - 1) % 4) as $T),
+                b'A' | b'C' | b'G' | b'T' => Some(((b / 2) % 4) as $T),
                 _ => None,
             }
         }
         #[inline]
         fn to_nuc(self) -> u8 {
-            const BASE_LOOKUP: [u8; 4] = [b'A', b'C', b'G', b'T'];
+            const BASE_LOOKUP: [u8; 4] = [b'A', b'C', b'T', b'G'];
             if self >= 4 {
                 panic!("Invalid base")
             }
@@ -71,7 +70,11 @@ macro_rules! impl_t {
             [0, 1, 2, 3].map(|base| self.append(base))
         }
         pub fn canonical(self) -> Self {
-            min(self, self.rev_comp())
+            if self.to_int().count_ones() % 2 == 0 {
+                self
+            } else {
+                self.rev_comp()
+            }
         }
         pub fn submers<const M: usize>(self) -> Vec<Kmer<M, $T>> {
             let mut res = vec![Kmer::<M, $T>::new(); K - M + 1];
@@ -138,8 +141,9 @@ impl_t!(u8, u16, u32, u64, u128);
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 impl<const K: usize> Kmer<K, u8> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().reverse_bits();
+        let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x55) | (res & 0x55) << 1;
+        res ^= 0xAA;
         Self::from_int(res >> (2 * (4 - K)))
     }
 }
@@ -147,8 +151,9 @@ impl<const K: usize> Kmer<K, u8> {
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 impl<const K: usize> Kmer<K, u16> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().reverse_bits();
+        let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555) | (res & 0x5555) << 1;
+        res ^= 0xAAAA;
         Self::from_int(res >> (2 * (8 - K)))
     }
 }
@@ -156,8 +161,9 @@ impl<const K: usize> Kmer<K, u16> {
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 impl<const K: usize> Kmer<K, u32> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().reverse_bits();
+        let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555) | (res & 0x5555_5555) << 1;
+        res ^= 0xAAAA_AAAA;
         Self::from_int(res >> (2 * (16 - K)))
     }
 }
@@ -165,8 +171,9 @@ impl<const K: usize> Kmer<K, u32> {
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 impl<const K: usize> Kmer<K, u64> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().reverse_bits();
+        let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555_5555_5555) | (res & 0x5555_5555_5555_5555) << 1;
+        res ^= 0xAAAA_AAAA_AAAA_AAAA;
         Self::from_int(res >> (2 * (32 - K)))
     }
 }
@@ -174,9 +181,10 @@ impl<const K: usize> Kmer<K, u64> {
 #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
 impl<const K: usize> Kmer<K, u128> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().reverse_bits();
+        let mut res = self.to_int().reverse_bits();
         res = (res >> 1 & 0x5555_5555_5555_5555_5555_5555_5555_5555)
             | (res & 0x5555_5555_5555_5555_5555_5555_5555_5555) << 1;
+        res ^= 0xAAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA;
         Self::from_int(res >> (2 * (64 - K)))
     }
 }
@@ -184,9 +192,10 @@ impl<const K: usize> Kmer<K, u128> {
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 impl<const K: usize> Kmer<K, u8> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int();
+        let mut res = self.to_int();
         res = (res >> 4 & 0x0F) | (res & 0x0F) << 4;
         res = (res >> 2 & 0x33) | (res & 0x33) << 2;
+        res ^= 0xAA;
         Self::from_int(res >> (2 * (4 - K)))
     }
 }
@@ -194,9 +203,10 @@ impl<const K: usize> Kmer<K, u8> {
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 impl<const K: usize> Kmer<K, u16> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().swap_bytes();
+        let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F) | (res & 0x0F0F) << 4;
         res = (res >> 2 & 0x3333) | (res & 0x3333) << 2;
+        res ^= 0xAAAA;
         Self::from_int(res >> (2 * (8 - K)))
     }
 }
@@ -204,9 +214,10 @@ impl<const K: usize> Kmer<K, u16> {
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 impl<const K: usize> Kmer<K, u32> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().swap_bytes();
+        let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F) | (res & 0x0F0F_0F0F) << 4;
         res = (res >> 2 & 0x3333_3333) | (res & 0x3333_3333) << 2;
+        res ^= 0xAAAA_AAAA;
         Self::from_int(res >> (2 * (16 - K)))
     }
 }
@@ -214,9 +225,10 @@ impl<const K: usize> Kmer<K, u32> {
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 impl<const K: usize> Kmer<K, u64> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().swap_bytes();
+        let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F_0F0F_0F0F) | (res & 0x0F0F_0F0F_0F0F_0F0F) << 4;
         res = (res >> 2 & 0x3333_3333_3333_3333) | (res & 0x3333_3333_3333_3333) << 2;
+        res ^= 0xAAAA_AAAA_AAAA_AAAA;
         Self::from_int(res >> (2 * (32 - K)))
     }
 }
@@ -224,11 +236,12 @@ impl<const K: usize> Kmer<K, u64> {
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 impl<const K: usize> Kmer<K, u128> {
     pub fn rev_comp(self) -> Self {
-        let mut res = !self.to_int().swap_bytes();
+        let mut res = self.to_int().swap_bytes();
         res = (res >> 4 & 0x0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F)
             | (res & 0x0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F_0F0F) << 4;
         res = (res >> 2 & 0x3333_3333_3333_3333_3333_3333_3333_3333)
             | (res & 0x3333_3333_3333_3333_3333_3333_3333_3333) << 2;
+        res ^= 0xAAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA_AAAA;
         Self::from_int(res >> (2 * (64 - K)))
     }
 }
