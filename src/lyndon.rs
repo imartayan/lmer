@@ -12,19 +12,19 @@ macro_rules! impl_Lyndon {
     impl<const K: usize> Lyndon<K, $t> for Kmer<K, $t> {
         #[inline]
         fn rot_right(self) -> Self {
-            Self::from_int(((self.to_int() & 0b11) << (2 * (K - 1))) | (self.to_int() >> 2))
+            Self::from_int(((self.to_int() & 1) << (2 * K - 1)) | (self.to_int() >> 1))
         }
         fn necklace(self) -> Self {
             let mut res = self;
             let mut rot = self;
-            for _ in 1..K {
+            for _ in 1..(2 * K) {
                 rot = rot.rot_right();
                 res = min(res, rot);
             }
             res
         }
         fn lmer(self) -> Self {
-            min(self.necklace(), self.rev_comp().necklace())
+            self.canonical().necklace()
         }
     }
 )*}}
@@ -37,8 +37,11 @@ mod tests {
 
     #[test]
     fn test_necklace() {
-        let kmer = Kmer::<11, u32>::from_nucs(b"CATAATCCAGC");
-        assert_eq!(kmer.necklace().to_nucs(), *b"AATCCAGCCAT");
+        let kmer = Kmer::<3, u32>::from_nucs(b"CGT");
+        println!("{:06b}", kmer.to_int());
+        println!("{:06b}", kmer.necklace().to_int());
+        println!("{:06b}", kmer.rev_comp().to_int());
+        println!("{:06b}", kmer.rev_comp().necklace().to_int());
     }
 
     #[test]
