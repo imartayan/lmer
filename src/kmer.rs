@@ -321,11 +321,4 @@ mod tests {
             assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
         }
     }
-    #[test]
-    fn perf_rc() {
-        for i in 0..1_000_000_000 {
-            let kmer = RawKmer::<31, u64>::from_int(i);
-            assert_eq!(kmer.rev_comp().rev_comp().to_int(), i);
-        }
-    }
 }
