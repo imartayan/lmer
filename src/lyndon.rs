@@ -1,5 +1,5 @@
 use crate::kmer::{Base, Kmer};
-use std::cmp::min;
+use core::cmp::min;
 
 pub trait Lyndon<const K: usize, T: Base>: Kmer<K, T> {
     #[inline]
