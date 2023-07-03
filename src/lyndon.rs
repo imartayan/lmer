@@ -15,6 +15,19 @@ pub trait Lyndon<const K: usize, T: Base>: Kmer<K, T> {
         }
         res
     }
+    fn lmer_index(self) -> (T, usize) {
+        let mut res = self.canonical().to_int() >> 1;
+        let mut idx = 0;
+        let mut rot = res;
+        for i in 1..(2 * K - 1) {
+            rot = Self::rot_right(rot);
+            if rot < res {
+                res = rot;
+                idx = i;
+            }
+        }
+        (res, idx)
+    }
 }
 
 impl<const K: usize, T: Base, KT: Kmer<K, T>> Lyndon<K, T> for KT {}
