@@ -8,7 +8,9 @@ edition = "2021"
 [dependencies]
 num-traits = "0.2.15"
 rand = "0.8.5"
+roaring = "0.10.1"
 seq_io = "0.4.0-alpha.0"
+sucds = "0.8.0"
 
 [profile.dev]
 opt-level = 1
