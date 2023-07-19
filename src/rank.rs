@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_rank_lmers() {
         use crate::utils::all_lmers;
-        use crate::T;
+        type T = u32;
         const K: usize = 9;
         const N: usize = 2 * K - 1;
         let ranker = Ranker::<N, T>::new();

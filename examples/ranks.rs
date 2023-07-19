@@ -1,12 +1,13 @@
-// use lmer::kmer::Kmer;
+use lmer::kmer::RawKmer;
 use lmer::lyndon::Lyndon;
 use lmer::rank::Ranker;
 use lmer::utils::random_kmers;
 
-type T = u64;
-const K: usize = 19;
+type T = u128;
+const K: usize = 35;
 const N: usize = 2 * K - 1;
-type R = u32;
+type R = u64;
+type KT = RawKmer<K, T>;
 type TSet = std::collections::BTreeSet<R>;
 
 use std::fs::File;
@@ -18,7 +19,7 @@ use std::io::Write;
 fn main() {
     let mut set_ranks = TSet::new();
 
-    let kmers = random_kmers::<K>(1_000_000);
+    let kmers = random_kmers::<K, T, KT>(1_000_000);
     let ranker = Ranker::<N, T>::new();
     for kmer in kmers {
         let lmer = kmer.lmer();

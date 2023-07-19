@@ -1,7 +1,4 @@
-// use lmer::kmer::{Kmer, RawKmer};
 use lmer::lyndon::{bin_rot_right, necklace};
-// use lmer::rank::Ranker;
-// use lmer::utils::random_kmers;
 use rand::Rng;
 use std::collections::HashSet;
 
@@ -19,11 +16,9 @@ fn main() {
     for _ in 0..(N - 1) {
         kmer = (kmer << 1) | rng.gen_range(0..2);
     }
-    // let mut set_kmers = HashSet::new();
     let mut set_necks = HashSet::new();
     for _ in 0..1000 {
         kmer = ((kmer << 1) | rng.gen_range(0..2)) & MASK;
-        // set_kmers.insert(kmer);
         set_necks.insert(necklace::<N, _>(kmer));
     }
     println!("{} necklaces", set_necks.len());
@@ -37,7 +32,6 @@ fn main() {
             let s = (rot >> 1) | ((1 - (rot & 1)) << (N - 1));
             let ns = necklace::<N, _>(s);
             if set_necks.contains(&ns) {
-                // println!("{:b} -> {:b}", neck, ns);
                 writeln!(dot, "{:b} -> {:b}", neck, ns).unwrap();
             }
             rot = bin_rot_right::<N, _>(rot);

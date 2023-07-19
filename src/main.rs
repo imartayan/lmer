@@ -6,34 +6,35 @@ mod rank;
 mod reads;
 mod utils;
 
-use kmer::Kmer;
+use kmer::{Kmer, RawKmer};
 use lyndon::Lyndon;
 use rank::Ranker;
 use utils::*;
 
 // const K: usize = 15;
-// pub type T = u32;
-// pub type L = u32;
+// type T = u32;
+// type L = u32;
 // const B: usize = 5;
 // type RB = roaring::RoaringBitmap;
 
 const K: usize = 19;
-pub type T = u64;
-pub type L = u32;
+type T = u64;
+type L = u32;
 const B: usize = 6;
 type RB = roaring::RoaringTreemap;
 
 // const K: usize = 31;
-// pub type T = u64;
-// pub type L = u64;
+// type T = u64;
+// type L = u64;
 // const B: usize = 6;
 // type RB = roaring::RoaringTreemap;
 
 // const K: usize = 35;
-// pub type T = u128;
-// pub type L = u64;
+// type T = u128;
+// type L = u64;
 // const B: usize = 7;
 
+type KT = RawKmer<K, T>;
 const N: usize = 2 * K - 1;
 type TSet = std::collections::BTreeSet<T>;
 type LSet = std::collections::BTreeSet<L>;
@@ -54,7 +55,7 @@ fn main() {
     // let mut rb_lmers = RB::new();
     // let mut rb_lmers_idx = RB::new();
 
-    let kmers = random_kmers::<K>(1_000_000);
+    let kmers = random_kmers::<K, T, KT>(1_000_000);
     let ranker = Ranker::<N, T>::new();
     for kmer in kmers {
         let kmer_cp = kmer.canonical().to_int() >> 1;

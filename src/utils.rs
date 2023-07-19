@@ -1,26 +1,25 @@
 #![allow(dead_code)]
 use crate::kmer::{Base, Kmer, RawKmer};
 use crate::lyndon::Lyndon;
-use crate::T;
 use core::fmt::Binary;
 use rand::Rng;
 use std::collections::BTreeSet;
 
-pub fn all_lmers<const K: usize>() -> BTreeSet<T> {
+pub fn all_lmers<const K: usize>() -> BTreeSet<u32> {
     let mut lmers = BTreeSet::new();
-    for i in 0..=RawKmer::<K, T>::MASK {
-        let kmer = RawKmer::<K, T>::from_int(i);
+    for i in 0..=RawKmer::<K, u32>::MASK {
+        let kmer = RawKmer::<K, u32>::from_int(i);
         lmers.insert(kmer.lmer());
     }
     lmers
 }
 
-pub fn random_kmers<const K: usize>(n: usize) -> Vec<RawKmer<K, T>> {
+pub fn random_kmers<const K: usize, T: Base, KT: Kmer<K, T>>(n: usize) -> Vec<KT> {
     let mut res = Vec::new();
     let mut rng = rand::thread_rng();
-    let mut kmer = RawKmer::<K, T>::new();
+    let mut kmer = KT::new();
     for i in 0..(n + K - 1) {
-        let base: T = rng.gen_range(0..4);
+        let base: T = T::bases()[rng.gen_range(0..4)];
         if i < K - 1 {
             kmer = kmer.extend(base);
         } else {
