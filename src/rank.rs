@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 // Adapted from http://www.cis.uoguelph.ca/~sawada/prog/ranking_necklaces.c
+// and optimized for a binary alphabet
 
 fn gcd(a: usize, b: usize) -> usize {
     let mut a = a;
