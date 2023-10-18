@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+num-format = "0.4.4"
 num-traits = "0.2.15"
 rand = "0.8.5"
 seq_io = "0.4.0-alpha.0"
@@ -16,11 +17,11 @@ sucds = "0.8.0"
 
 [profile.dev]
 opt-level = 1
-lto = true
+lto = "thin"
 incremental = true
 
 [profile.release]
 opt-level = 3
+lto = "fat"
 panic = "abort"
-lto = true
 incremental = true
