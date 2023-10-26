@@ -34,26 +34,11 @@ fn weight(val: &Vec<usize>, i: usize, j: usize) -> f64 {
     (cost / 8.0).ceil() * 8.0
 }
 
-fn main() {
-    println!("K={K}, Ɛ={EPS}, {N} k-mers");
-    let kmers = random_kmers::<K, T, RawKmer<K, T>>(N);
-    let ranker = Ranker::<B, T>::new();
-    let lmers: BTreeSet<usize> = kmers
-        .iter()
-        .map(|kmer| {
-            let lmer = kmer.lmer();
-            if RANK {
-                ranker.rank(lmer) as usize
-            } else {
-                lmer as usize
-            }
-        })
-        .collect();
-    let val: Vec<usize> = lmers.iter().map(|&x| x).collect();
-
+/// compute a (1+Ɛ) approximation of the optimal partition
+fn partition(val: &Vec<usize>) -> (Vec<usize>, f64) {
     let n = val.len();
-    let init_cost = weight(&val, 0, n);
-    let q = (init_cost / FIXED_COST).log(1.0 + EPS).floor() as usize;
+    let plain_cost = weight(&val, 0, n);
+    let q = (plain_cost / FIXED_COST).log(1.0 + EPS).floor() as usize;
     // let q = (1.0 / EPS1).log(1.0 + EPS).floor() as usize;
 
     let mut dist = vec![f64::INFINITY; n + 1];
@@ -89,24 +74,67 @@ fn main() {
         }
     }
 
-    println!("Initial cost/entry: {:.2}", init_cost / n as f64);
-    println!("Partitioned cost/entry: {:.2}", dist[n] / n as f64);
-    let mut bounds = vec![n];
+    let mut bounds = Vec::new();
     let mut j = n;
     while j > 0 {
         j = pred[j];
         bounds.push(j);
     }
     bounds.reverse();
-    // println!("using {} partition(s)", bounds.len() - 1);
-    // let stop = cmp::min(bounds.len() - 1, 10);
-    // println!("{stop} first partition(s):");
-    // for i in 0..stop {
-    //     let (i, j) = (bounds[i], bounds[i + 1]);
-    //     println!(
-    //         "width={:.1e},\tcost={:.2}",
-    //         val[j - 1] - val[i] + 1,
-    //         weight(&val, i, j) / (j - i) as f64
-    //     );
-    // }
+    (bounds, dist[n])
+}
+
+fn main() {
+    println!("K={K}, Ɛ={EPS}, {N} k-mers");
+    let ranker = Ranker::<B, T>::new();
+    let kmers = random_kmers::<K, T, RawKmer<K, T>>(2 * N);
+    let mut lmers = BTreeSet::new();
+    lmers.extend(kmers[..N].iter().map(|&kmer| {
+        let lmer = kmer.lmer();
+        if RANK {
+            ranker.rank(lmer) as usize
+        } else {
+            lmer as usize
+        }
+    }));
+    let val: Vec<_> = lmers.iter().map(|&x| x).collect();
+    let n = val.len();
+
+    println!("Plain cost/entry: {:.2}", weight(&val, 0, n) / n as f64);
+    let (bounds, cost) = partition(&val);
+    println!("Partition cost/entry: {:.2}", cost / n as f64);
+    println!("using {} partition(s)", bounds.len());
+    println!();
+
+    lmers.extend(kmers[N..].iter().map(|&kmer| {
+        let lmer = kmer.lmer();
+        if RANK {
+            ranker.rank(lmer) as usize
+        } else {
+            lmer as usize
+        }
+    }));
+    let val2: Vec<_> = lmers.iter().map(|&x| x).collect();
+    let n2 = val2.len();
+
+    println!("After inserting {} new lmers:", n2 - n);
+    println!("Plain cost/entry: {:.2}", weight(&val2, 0, n2) / n2 as f64);
+
+    let bounds_val: Vec<_> = bounds.iter().map(|&i| val[i]).collect();
+    let bounds2: Vec<_> = bounds_val
+        .iter()
+        .map(|v| val2.binary_search(v).unwrap())
+        .collect();
+    let cost2 = bounds2
+        .iter()
+        .zip(bounds2.iter().skip(1))
+        .map(|(&i, &j)| weight(&val2, i, j))
+        .sum::<f64>()
+        + weight(&val2, *bounds2.last().unwrap(), n2);
+    println!("Old partition cost/entry: {:.2}", cost2 / n2 as f64);
+    println!("using {} partition(s)", bounds2.len());
+
+    let (bounds2_new, cost2_new) = partition(&val2);
+    println!("New partition cost/entry: {:.2}", cost2_new / n2 as f64);
+    println!("using {} partition(s)", bounds2_new.len());
 }
