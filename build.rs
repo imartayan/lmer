@@ -27,20 +27,20 @@ fn main() {
     let kmer_bits = 2 * k;
     code.push(format!("pub const KMER_BITS: usize = {kmer_bits};"));
 
-    let canon_bits = 2 * k - 1;
+    let canon_bits = kmer_bits - 1;
     code.push(format!("pub const CANON_BITS: usize = {canon_bits};"));
-
-    let t = select_type(kmer_bits);
-    code.push(format!("pub type T = {t};"));
 
     let rot_bits = canon_bits.next_power_of_two().ilog2() as usize;
     code.push(format!("pub const ROT_BITS: usize = {rot_bits};"));
 
+    let kt = select_type(kmer_bits);
+    code.push(format!("pub type KT = {kt};"));
+
     let lmer_bits = kmer_bits - rot_bits;
     code.push(format!("pub const LMER_BITS: usize = {lmer_bits};"));
 
-    let lmer_t = select_type(lmer_bits);
-    code.push(format!("pub type LmerT = {lmer_t};"));
+    let lt = select_type(lmer_bits);
+    code.push(format!("pub type LT = {lt};"));
 
     std::fs::write(out_dir.join("constants.rs"), code.join("\n"))
         .expect("Failed to write const file");

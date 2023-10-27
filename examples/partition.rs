@@ -1,3 +1,4 @@
+use lmer::constants::{CANON_BITS, K, KT};
 use lmer::kmer::RawKmer;
 use lmer::lyndon::Lyndon;
 use lmer::partition::Partitioner;
@@ -9,15 +10,12 @@ use std::collections::BTreeSet;
 const EPS: f64 = 0.3;
 const N: usize = 1_000_000;
 const RANK: bool = false;
-const K: usize = 31;
-const B: usize = 2 * K - 1;
-type T = u64;
 
 fn main() {
     println!("K={K}, Ɛ={EPS}, {N} k-mers");
     let partitioner = Partitioner::new();
-    let ranker = Ranker::<B, T>::new();
-    let kmers = random_kmers::<K, T, RawKmer<K, T>>(2 * N);
+    let ranker = Ranker::<CANON_BITS, KT>::new();
+    let kmers = random_kmers::<K, KT, RawKmer<K, KT>>(2 * N);
     let mut lmers = BTreeSet::new();
 
     lmers.extend(kmers[..N].iter().map(|&kmer| {
@@ -28,7 +26,7 @@ fn main() {
             lmer
         }
     }));
-    let val: Vec<_> = lmers.iter().map(|&x| x).collect();
+    let val: Vec<_> = lmers.iter().copied().collect();
     let n = val.len();
 
     println!(
@@ -48,7 +46,7 @@ fn main() {
             lmer
         }
     }));
-    let val2: Vec<_> = lmers.iter().map(|&x| x).collect();
+    let val2: Vec<_> = lmers.iter().copied().collect();
     let n2 = val2.len();
 
     println!("After inserting {} new lmers:", n2 - n);
