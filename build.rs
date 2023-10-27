@@ -19,7 +19,9 @@ fn main() {
         .unwrap_or_else(|_| "31".into())
         .parse()
         .expect("Failed to parse K");
-    assert!(k % 2 == 1, "K must be odd!");
+    assert!(k >= 1, "K must be ≥ 1");
+    assert!(k < 64, "K must be < 64");
+    assert!(k % 2 == 1, "K must be odd");
     code.push(format!("pub const K: usize = {k};"));
 
     let kmer_bits = 2 * k;
