@@ -10,6 +10,12 @@ pub struct Partitioner<T: PrimInt + AsPrimitive<usize>> {
     _phantom: PhantomData<T>,
 }
 
+impl<T: PrimInt + AsPrimitive<usize>> Default for Partitioner<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: PrimInt + AsPrimitive<usize>> Partitioner<T> {
     pub fn new() -> Self {
         Self {
@@ -19,7 +25,7 @@ impl<T: PrimInt + AsPrimitive<usize>> Partitioner<T> {
     }
 
     /// cost to encode [`val[i]`, `val[j-1]`]
-    pub fn cost(&self, val: &Vec<T>, i: usize, j: usize) -> usize {
+    pub fn cost(&self, val: &[T], i: usize, j: usize) -> usize {
         debug_assert!(i < j, "{i} >= {j}");
         debug_assert!(j <= val.len(), "{j} >= {}", val.len());
         let n = j - i;
@@ -34,7 +40,7 @@ impl<T: PrimInt + AsPrimitive<usize>> Partitioner<T> {
     }
 
     /// compute a (1+Ɛ) approximation of the optimal partition
-    pub fn partition(&self, val: &Vec<T>, eps: f64) -> (Vec<T>, usize) {
+    pub fn partition(&self, val: &[T], eps: f64) -> (Vec<T>, usize) {
         debug_assert!(!val.is_empty(), "empty vector");
         let n = val.len();
         let plain_cost = self.cost(val, 0, n);
@@ -87,7 +93,7 @@ impl<T: PrimInt + AsPrimitive<usize>> Partitioner<T> {
         (partition, dist[n])
     }
 
-    pub fn cost_with_partition(&self, val: &Vec<T>, partition: &Vec<T>) -> usize {
+    pub fn cost_with_partition(&self, val: &[T], partition: &[T]) -> usize {
         debug_assert!(!val.is_empty(), "empty vector");
         let n = val.len();
         let bounds: Vec<_> = partition

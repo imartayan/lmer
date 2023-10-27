@@ -23,6 +23,12 @@ pub struct Ranker<const N: usize, T> {
 
 macro_rules! impl_rank {
 ($($T:ty),+) => {$(
+impl<const N: usize> Default for Ranker<N, $T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<const N: usize> Ranker<N, $T> {
     pub fn new() -> Self {
         let mut divs = Vec::new();
