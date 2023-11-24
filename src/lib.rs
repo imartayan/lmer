@@ -1,5 +1,6 @@
 pub mod kmer;
 pub mod lyndon;
+pub mod necklace;
 pub mod partition;
 pub mod rank;
 pub mod reads;
