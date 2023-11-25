@@ -25,30 +25,50 @@ impl<const W: usize, T: Ord + Copy> LexMinQueue<W, T> {
     }
 
     pub fn insert(&mut self, u: T) {
+        if !self.deq.is_empty() && self.deq[0].1 == self.pos {
+            self.deq.pop_front();
+            self.min_pos.pop_front();
+        }
         let mut i = self.deq.len();
-        while i > 0 {
-            if self.deq[i - 1].0 <= u {
-                break;
-            }
+        while i > 0 && self.deq[i - 1].0 > u {
             i -= 1;
         }
         self.deq.truncate(i);
         self.min_pos.truncate(i);
         self.deq.push_back((u, self.pos));
-        if i == 0 {
-            self.min_pos.push_back(self.deq[0].1);
-        } else {
-            if self.pos == self.deq[0].1 {
-                self.deq.pop_front();
-                self.min_pos.pop_front();
-            }
-            while self.min_pos.len() < self.deq.len()
-                && self.deq[self.min_pos.len()].0 == self.deq[0].0
-            {
-                self.min_pos.push_back(self.deq[self.min_pos.len()].1);
-            }
+        while self.min_pos.len() < self.deq.len() && self.deq[self.min_pos.len()].0 == self.deq[0].0
+        {
+            self.min_pos.push_back(self.deq[self.min_pos.len()].1);
         }
         self.pos = self.pos.wrapping_add(1) % W;
+    }
+
+    pub fn insert2(&mut self, u: T, v: T) {
+        let next_pos = self.pos.wrapping_add(1) % W;
+        if !self.deq.is_empty() && self.deq[0].1 == self.pos {
+            self.deq.pop_front();
+            self.min_pos.pop_front();
+        }
+        if !self.deq.is_empty() && self.deq[0].1 == next_pos {
+            self.deq.pop_front();
+            self.min_pos.pop_front();
+        }
+        let w = min(u, v);
+        let mut i = self.deq.len();
+        while i > 0 && self.deq[i - 1].0 > w {
+            i -= 1;
+        }
+        self.deq.truncate(i);
+        self.min_pos.truncate(i);
+        if u <= v {
+            self.deq.push_back((u, self.pos));
+        }
+        self.deq.push_back((v, next_pos));
+        while self.min_pos.len() < self.deq.len() && self.deq[self.min_pos.len()].0 == self.deq[0].0
+        {
+            self.min_pos.push_back(self.deq[self.min_pos.len()].1);
+        }
+        self.pos = next_pos.wrapping_add(1) % W;
     }
 }
 
@@ -100,6 +120,11 @@ impl<const N: usize, const W: usize> NecklaceQueue<N, W, $T> {
     pub fn insert(&mut self, x: $T) {
         self.word = ((self.word << 1) & Self::MASK) | x;
         self.min_queue.insert(self.word & Self::MIN_MASK);
+    }
+
+    pub fn insert2(&mut self, x: $T) {
+        self.word = ((self.word << 2) & Self::MASK) | x;
+        self.min_queue.insert2((self.word >> 1) & Self::MIN_MASK, self.word & Self::MIN_MASK);
     }
 }
 )*}}
