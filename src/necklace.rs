@@ -19,9 +19,27 @@ impl<const W: usize, T: Ord + Copy> LexMinQueue<W, T> {
     }
 
     pub fn iter_min_pos(&self) -> impl Iterator<Item = usize> + '_ {
-        self.min_pos
-            .iter()
-            .map(|&pos| pos.wrapping_sub(self.pos) % W)
+        self.min_pos.iter().map(|&pos| (pos + W - self.pos) % W)
+    }
+
+    pub fn insert_full<I: DoubleEndedIterator<Item = T>>(&mut self, vals: I) {
+        self.deq.clear();
+        self.min_pos.clear();
+        let mut vals = vals.rev();
+        let mut min = vals.next().unwrap();
+        let mut pos = (self.pos + W - 1) % W;
+        self.deq.push_front((min, pos));
+        for u in vals.take(W - 1) {
+            pos = (pos + W - 1) % W;
+            if u <= min {
+                min = u;
+                self.deq.push_front((min, pos));
+            }
+        }
+        while self.min_pos.len() < self.deq.len() && self.deq[self.min_pos.len()].0 == self.deq[0].0
+        {
+            self.min_pos.push_back(self.deq[self.min_pos.len()].1);
+        }
     }
 
     pub fn insert(&mut self, u: T) {
@@ -40,11 +58,11 @@ impl<const W: usize, T: Ord + Copy> LexMinQueue<W, T> {
         {
             self.min_pos.push_back(self.deq[self.min_pos.len()].1);
         }
-        self.pos = self.pos.wrapping_add(1) % W;
+        self.pos = (self.pos + 1) % W;
     }
 
     pub fn insert2(&mut self, u: T, v: T) {
-        let next_pos = self.pos.wrapping_add(1) % W;
+        let next_pos = (self.pos + 1) % W;
         if !self.deq.is_empty() && self.deq[0].1 == self.pos {
             self.deq.pop_front();
             self.min_pos.pop_front();
@@ -68,7 +86,7 @@ impl<const W: usize, T: Ord + Copy> LexMinQueue<W, T> {
         {
             self.min_pos.push_back(self.deq[self.min_pos.len()].1);
         }
-        self.pos = next_pos.wrapping_add(1) % W;
+        self.pos = (next_pos + 1) % W;
     }
 }
 
@@ -92,9 +110,15 @@ impl<const N: usize, const W: usize> NecklaceQueue<N, W, $T> {
     const MIN_MASK: $T = (1 << Self::M) - 1;
 
     pub fn new(word: $T) -> Self {
+        let word = word & Self::MASK;
+        let vals = (0..W).map(|p|
+            (word >> (N - p - Self::M)) & Self::MIN_MASK
+        );
+        let mut min_queue = LexMinQueue::new();
+        min_queue.insert_full(vals);
         Self {
-            word: word & Self::MASK,
-            min_queue: LexMinQueue::new(),
+            word,
+            min_queue,
         }
     }
 
@@ -110,7 +134,7 @@ impl<const N: usize, const W: usize> NecklaceQueue<N, W, $T> {
                 .map(|p| (self.rotation(p), p))
                 .min()
                 .unwrap(),
-            ((N - Self::M)..(N - 1))
+            (W..N)
                 .map(|p| (self.rotation(p), p))
                 .min()
                 .unwrap(),
@@ -134,25 +158,76 @@ impl_t!(u8, u16, u32, u64, u128);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
+
     const N: usize = 8;
-    const M: usize = 4;
+    const M: usize = 5;
     const W: usize = N - M + 1;
 
     #[test]
-    fn test_lex_min_queue() {
-        let mut queue = LexMinQueue::<W, _>::new();
-        for x in [1, 4, 1, 2, 3] {
-            queue.insert(x);
-            println!("{:?}", queue);
-        }
+    fn test_lex_min_queue_insert_full() {
+        let mut min_queue = LexMinQueue::<W, _>::new();
+        min_queue.insert_full([2, 1, 2, 1].iter());
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 3, W - 1],
+            "{:?}",
+            min_queue
+        );
     }
 
     #[test]
-    fn test_necklace() {
-        let mut queue = NecklaceQueue::<N, W, u64>::new(u64::MAX);
-        for x in [0u64, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1] {
-            queue.insert(x);
-            println!("{:?}", queue.get_necklace_pos());
-        }
+    fn test_lex_min_queue_insert() {
+        let mut min_queue = LexMinQueue::<W, _>::new();
+        min_queue.insert(3);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 1],
+            "{:?}",
+            min_queue
+        );
+        min_queue.insert(1);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 1],
+            "{:?}",
+            min_queue
+        );
+        min_queue.insert(2);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 2],
+            "{:?}",
+            min_queue
+        );
+        min_queue.insert(3);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 3],
+            "{:?}",
+            min_queue
+        );
+        min_queue.insert(1);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 4, W - 1],
+            "{:?}",
+            min_queue
+        );
+        min_queue.insert(2);
+        assert_eq!(
+            min_queue.iter_min_pos().collect_vec(),
+            vec![W - 2],
+            "{:?}",
+            min_queue
+        );
+    }
+
+    #[test]
+    fn test_necklace_queue() {
+        let mut necklace_queue = NecklaceQueue::<N, W, u64>::new(0b10010110);
+        assert_eq!(necklace_queue.get_necklace_pos(), (0b00101101, 1));
+        necklace_queue.insert(0);
+        assert_eq!(necklace_queue.get_necklace_pos(), (0b00001011, N - 2));
     }
 }
