@@ -109,17 +109,17 @@ impl<const N: usize, const W: usize> NecklaceQueue<N, W, $T> {
     const MASK: $T = (1 << N) - 1;
     const MIN_MASK: $T = (1 << Self::M) - 1;
 
-    pub fn new(word: $T) -> Self {
-        let word = word & Self::MASK;
-        let vals = (0..W).map(|p|
-            (word >> (N - p - Self::M)) & Self::MIN_MASK
-        );
-        let mut min_queue = LexMinQueue::new();
-        min_queue.insert_full(vals);
+    pub fn new() -> Self {
         Self {
-            word,
-            min_queue,
+            word: 0,
+            min_queue: LexMinQueue::new(),
         }
+    }
+
+    pub fn new_from_word(word: $T) -> Self {
+        let mut res = Self::new();
+        res.insert_full(word);
+        res
     }
 
     #[inline]
@@ -141,14 +141,28 @@ impl<const N: usize, const W: usize> NecklaceQueue<N, W, $T> {
         )
     }
 
+    pub fn insert_full(&mut self, word: $T) {
+        self.word = word & Self::MASK;
+        let vals = (0..W).map(|p|
+            (word >> (N - p - Self::M)) & Self::MIN_MASK
+        );
+        self.min_queue.insert_full(vals);
+    }
+
     pub fn insert(&mut self, x: $T) {
-        self.word = ((self.word << 1) & Self::MASK) | x;
+        self.word = ((self.word << 1) & Self::MASK) | (x & 0b1);
         self.min_queue.insert(self.word & Self::MIN_MASK);
     }
 
     pub fn insert2(&mut self, x: $T) {
-        self.word = ((self.word << 2) & Self::MASK) | x;
+        self.word = ((self.word << 2) & Self::MASK) | (x & 0b11);
         self.min_queue.insert2((self.word >> 1) & Self::MIN_MASK, self.word & Self::MIN_MASK);
+    }
+}
+
+impl<const N: usize, const W: usize> Default for NecklaceQueue<N, W, $T> {
+    fn default() -> Self {
+    Self::new()
     }
 }
 )*}}
@@ -225,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_necklace_queue() {
-        let mut necklace_queue = NecklaceQueue::<N, W, u64>::new(0b10010110);
+        let mut necklace_queue = NecklaceQueue::<N, W, u64>::new_from_word(0b10010110);
         assert_eq!(necklace_queue.get_necklace_pos(), (0b00101101, 1));
         necklace_queue.insert(0);
         assert_eq!(necklace_queue.get_necklace_pos(), (0b00001011, N - 2));
